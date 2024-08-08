@@ -1,0 +1,39 @@
+server:
+  port: 8081
+
+spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          weather:
+            url: http://localhost:9090/api/weather
+            connection-timeout: 5000
+            read-timeout: 5000
+
+resilience4j:
+#  retry:
+#    instances:
+#      weather-retry:
+#        max-attempts: 3
+#        wait-duration: 3s
+#        retry-exceptions:
+#          - feign.FeignException.BadGateway
+#          - feign.FeignException.BadRequest
+#          - feign.FeignException.NotFound
+  circuitbreaker:
+    instances:
+      weather-breaker:
+        sliding-window-type: count_based # Тип скользящего окна. В данном случае используется count-based, что означает, что окно будет скользить на основе количества вызовов. {time-based}
+        sliding-window-size: 5 # Размер скользящего окна в количестве вызовов. Здесь указано 5, что означает, что CircuitBreaker будет учитывать последние 5 вызовов для оценки состояния.
+        failure-rate-threshold: 75 # Порог отказов в процентах. Если более 75% вызовов в окне (5 вызовов) завершаются ошибками, CircuitBreaker переходит в открытое состояние.
+        minimum-number-of-calls: 5 # Минимальное количество вызовов, которые должны быть выполнены в скользящем окне, прежде чем CircuitBreaker начнет оценивать процент отказов.
+          # Здесь это число равно 5, что совпадает с размером окна.
+        wait-duration-in-open-state: 10s # Время ожидания в открытом состоянии. CircuitBreaker будет находиться в
+        # открытом состоянии в течение 10 секунд, после чего перейдет в полузакрытое состояние.
+        max-wait-duration-in-half-open-state: 5s # Максимальная длительность нахождения в полузакрытом состоянии.
+        # Если в течение 5 секунд не будут получены успешные ответы, CircuitBreaker снова откроется.
+        automatic-transition-from-open-to-half-open-enabled: true # Автоматический переход из открытого состояния в полузакрытое. Когда включено (true), CircuitBreaker автоматически переходит в полузакрытое состояние после завершения времени ожидания в открытом состоянии.
+        permitted-number-of-calls-in-half-open-state: 2 # Количество разрешенных вызовов в полузакрытом состоянии. В полузакрытом состоянии будет выполнено 2 вызова, чтобы определить, можно ли вернуться в закрытое состояние (если они успешны) или снова перейти в открытое состояние (если они провалятся).
+
+
